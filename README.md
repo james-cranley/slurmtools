@@ -41,7 +41,7 @@ Credit: [Theo Nelson](mailto:tmn2126@columbia.edu) for the original idea.
 
 ## slurmer
 
-Generates SLURM batch scripts from a file of shell commands—designed for both simple and high-throughput submission scenarios.
+Generates SLURM batch scripts from a plain text file of commands. By default commands will be executed in series, however there is a seamless parallelisation (`--array`/`--parallel`) if each line is an independent job.
 
 **Key features:**
 
