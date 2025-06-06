@@ -52,7 +52,7 @@ Generates SLURM batch scripts from a plain text file of commands. By default com
   * Override with `-p <partition>`.
 * **Execution modes**:
 
-  * **Serial**: runs commands one after another (`parallel -j1`).
+  * **Serial**: (default) runs commands one after another (`parallel -j1`).
   * **Parallel**: runs commands concurrently with GNU Parallel (`--parallel`). Jobs share the requested resource.
   * **Array**: creates a SLURM array job, one command per task (`--array`). Each job gets the requested resource.
 * **Logging**:
