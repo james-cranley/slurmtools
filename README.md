@@ -86,7 +86,8 @@ Example `slurmer` calls:
 ```bash
 slurmer commands.txt -J testjob -t 2 -c 4                  # serial (default)
 slurmer commands.txt -J testjob -t 2 -c 4 --parallel       # run all commands concurrently
-slurmer commands.txt -J testjob -t 2 -g 1 --array          # as a SLURM array on 1 GPU
+slurmer commands.txt -J testjob -t 2 -g 1 --array          # as a SLURM array, 1 GPU each
+slurmer commands.txt -J testjob -t 2 -g 1 --parallel       # concurrently, sharing 1 GPU
 slurmer commands.txt -J testjob -t 2 -c 4 --conda myenv    # run in conda environment
 ```
 
