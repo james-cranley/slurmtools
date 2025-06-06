@@ -25,7 +25,7 @@ Again consider adding this line to `~/.bashrc` for persistence.
 
 ## qjump
 <details>
-<summary>read about `qjump`</summary>
+<summary>click here</summary>
 
 Identifies the Slurm partition with the **lowest** "Highest Priority" value among pending jobs blocked by the Priority reason, as a heuristic for the likely shortest queue.
 Partitions are separated into CPU and GPU classes; edit the lists in the `qjump` script as needed.
@@ -45,6 +45,8 @@ Credit: [Theo Nelson](mailto:tmn2126@columbia.edu) for the original idea.
 </details>
 
 ## slurmer
+<details>
+<summary>click here</summary>
 
 Generates SLURM submission scripts from a plain text file of commands. By default commands will be executed in series, however there is a seamless parallelisation (`--array` or `--parallel`) if each line is an independent job. It is particularly helpful when running multiple commands with varying parameterisations (i.e. bioinformatics...) because it reduces the slurm submission headache to creating a text file with one command per row. It also handles one-line jobs perfectly fine, making it flexible for all you slurm submissions.
 
@@ -212,8 +214,11 @@ bash test.sh
 ```
 
 Then inspect the logs / errors. To reset run `bash reset.sh`.
+</details>
 
 ## bashaslurm
+<details>
+<summary>click here</summary>
 
 Strips all `#SBATCH` lines from a SLURM script, so you can safely run the body of a batch script interactively (e.g., via `sintr`):
 
@@ -222,7 +227,7 @@ bashaslurm slurmscript.sh
 ```
 
 The result is printed to standard output.
-
+</details>
 ---
 
 [James Cranley](jc2226@cam.ac.uk)
