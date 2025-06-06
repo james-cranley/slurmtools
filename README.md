@@ -76,11 +76,18 @@ slurmer <cmdfile> -J <job-name> -t <hours> -c <cores>
 
 **Examples:**
 
+Example `commands.txt`:
 ```bash
-slurmer mycommands.txt -J testjob -t 2 -c 4                  # serial (default)
-slurmer mycommands.txt -J testjob -t 2 -c 4 --parallel       # run all commands concurrently
-slurmer mycommands.txt -J testjob -t 2 -g 1 --array          # as a SLURM array on 1 GPU
-slurmer mycommands.txt -J testjob -t 2 -c 4 --conda myenv    # run in conda environment
+python myGPUscript.py --input A --anotherflag B
+python myGPUscript.py --input B --anotherflag D
+```
+
+Example `slurmer` calls:
+```bash
+slurmer commands.txt -J testjob -t 2 -c 4                  # serial (default)
+slurmer commands.txt -J testjob -t 2 -c 4 --parallel       # run all commands concurrently
+slurmer commands.txt -J testjob -t 2 -g 1 --array          # as a SLURM array on 1 GPU
+slurmer commands.txt -J testjob -t 2 -c 4 --conda myenv    # run in conda environment
 ```
 
 **Arguments of note:**
