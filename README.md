@@ -126,6 +126,51 @@ parallel --result ./logs/slurm_parallel_gpu/{#}/{#} < test_cmds.txt
 echo quit | nvidia-cuda-mps-control
 ```
 
+Example of logging (same commands run in serial, parallel and array):
+```bash
+.
+├── commands.txt
+├── logs
+│   ├── slurm_array
+│   │   ├── commands.txt
+│   │   ├── slurm_array.10805579.e
+│   │   ├── slurm_array.10805579.o
+│   │   └── slurm.sh
+│   ├── slurm_parallel
+│   │   ├── cmd1
+│   │   ├── cmd1.err
+│   │   ├── cmd1.seq
+│   │   ├── cmd2
+│   │   ├── cmd2.err
+│   │   ├── cmd2.seq
+│   │   ├── cmd3
+│   │   ├── cmd3.err
+│   │   ├── cmd3.seq
+│   │   ├── commands.txt
+│   │   ├── slurm_parallel.10805577.e
+│   │   ├── slurm_parallel.10805577.o
+│   │   └── slurm.sh
+│   └── slurm_serial
+│       ├── cmd1
+│       ├── cmd1.err
+│       ├── cmd1.seq
+│       ├── cmd2
+│       ├── cmd2.err
+│       ├── cmd2.seq
+│       ├── cmd3
+│       ├── cmd3.err
+│       ├── cmd3.seq
+│       ├── commands.txt
+│       ├── slurm_serial.10805576.e
+│       ├── slurm_serial.10805576.o
+│       └── slurm.sh
+├── reset.sh
+├── slurm_array.sh
+├── slurm_parallel.sh
+├── slurm_serial.sh
+└── test.sh
+```
+
 **Arguments of note:**
 
 * `-c <cores>`: required for CPU jobs.
