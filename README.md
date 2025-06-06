@@ -228,6 +228,7 @@ bashaslurm slurmscript.sh
 
 The result is printed to standard output.
 </details>
+
 ---
 
 [James Cranley](jc2226@cam.ac.uk)
