@@ -142,16 +142,15 @@ def main() -> None:
         a.A = f"{pref}TEICHMANN-SL3-{'GPU' if gpu_job else 'CPU'}"
 
     if a.e is None and a.o is None:
-        a.e = os.path.join(logs_dir, "%x.e%A")
-        a.o = os.path.join(logs_dir, "%x.o%A")
+        a.e = os.path.join(logs_dir, f"{a.J}.%A.e")
+        a.o = os.path.join(logs_dir, f"{a.J}.%A.o")
 
     # --------------- mode flags & helpers ------------------
     array_mode = a.array
     parallel_mode = a.parallel
     serial_mode = not array_mode and not parallel_mode
     use_mps = gpu_job and parallel_mode and not a.no_mps
-    
-    result_pattern = f"{logs_dir}/{{#}}/{{#}}" old
+    result_pattern = f"{logs_dir}/cmd{{#}}"
 
     # --------------- build SBATCH script -------------------
     email_env = os.getenv("MY_CAM_EMAIL")  # ← e-mail trigger
@@ -211,12 +210,12 @@ def main() -> None:
     elif serial_mode:
         sb += [
             f"mkdir -p {logs_dir}",
-            f"parallel -j1 --result {result_pattern} < {a.cmdfile}",
+            f"parallel -j1 --result '{result_pattern}' < {a.cmdfile}",
         ]
     else:  # parallel_mode
         sb += [
             f"mkdir -p {logs_dir}",
-            f"parallel --result {result_pattern} < {a.cmdfile}",
+            f"parallel --result '{result_pattern}' < {a.cmdfile}",
         ]
 
     if use_mps:
@@ -230,6 +229,10 @@ def main() -> None:
     shfile = f"{a.J}.sh"
     with open(shfile, "w") as fh:
         fh.write(script_txt)
+
+    # Copy files into logs directory
+    shutil.copyfile(shfile, os.path.join(logs_dir, "slurm.sh"))
+    shutil.copyfile(a.cmdfile, os.path.join(logs_dir, "commands.txt"))
 
     sys.stderr.write(
         f"\nWrote batch script: {shfile}\n"
