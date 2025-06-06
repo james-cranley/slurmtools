@@ -150,8 +150,7 @@ def main() -> None:
     parallel_mode = a.parallel
     serial_mode = not array_mode and not parallel_mode
     use_mps = gpu_job and parallel_mode and not a.no_mps
-    
-    result_pattern = f"{logs_dir}/{{#}}/{{#}}" old
+    result_pattern = f"{logs_dir}/{{#}}/{{#}}"
 
     # --------------- build SBATCH script -------------------
     email_env = os.getenv("MY_CAM_EMAIL")  # ← e-mail trigger
