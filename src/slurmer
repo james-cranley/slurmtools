@@ -150,11 +150,8 @@ def main() -> None:
     parallel_mode = a.parallel
     serial_mode = not array_mode and not parallel_mode
     use_mps = gpu_job and parallel_mode and not a.no_mps
-    ### NEW
-    hash_perl = "{= $_ = Digest::SHA::sha1_hex($_) =}"
-    result_pattern = f"{logs_dir}/cmd{{#}}/{hash_perl}"
-    ###
-    # result_pattern = f"{logs_dir}/{{#}}/{{#}}" old
+    
+    result_pattern = f"{logs_dir}/{{#}}/{{#}}" old
 
     # --------------- build SBATCH script -------------------
     email_env = os.getenv("MY_CAM_EMAIL")  # ← e-mail trigger
