@@ -1,0 +1,11 @@
+#!/bin/bash
+# Usage: bashaslurm.sh <slurm_script.sh>
+# Runs a SLURM batch script in bash after stripping #SBATCH and shebang lines
+
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <slurm_script.sh>"
+    exit 1
+fi
+
+echo "Stripping #SBATCH and shebang lines, then running $1 in bash..."
+grep -v -e '^#SBATCH' -e '^#!' "$1" | bash

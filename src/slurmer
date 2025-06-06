@@ -1,0 +1,242 @@
+#!/usr/bin/env python
+# slurmer4 · James Cranley · updated Jun 2025
+#
+# Build a SLURM batch script from <cmdfile>.
+#
+#   Execution modes
+#     • default   : serial (-j1) with GNU Parallel
+#     • --parallel: run lines concurrently with GNU Parallel
+#     • --array   : SLURM array (one line per task)
+#
+#   Partition selection
+#     -p NAME     : use NAME verbatim
+#     -p auto     : (default) let qjump choose
+#                     · CPU job →  qjump           (device=cpu)
+#                     · GPU job →  qjump --device gpu
+#
+#   E-mail notifications
+#     If the environment variable MY_CAM_EMAIL is set, two SBATCH directives
+#       #SBATCH --mail-type=ALL
+#       #SBATCH --mail-user=<MY_CAM_EMAIL>
+#     are added; otherwise no mail directives are emitted.
+# ---------------------------------------------------------------------
+
+import os, sys, argparse, subprocess, textwrap, shutil
+
+
+# ───────────────────────── helpers ─────────────────────────
+def sh(cmd: str) -> str:
+    """Run *cmd* in the shell and return STDOUT with no trailing newline."""
+    proc = subprocess.run(
+        cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    if proc.returncode != 0:
+        raise RuntimeError(f"{cmd!r} failed: {proc.stderr.strip()}")
+    return proc.stdout.rstrip()
+
+
+# ───────────────────────── argparse ─────────────────────────
+def parse() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=textwrap.dedent(
+            """\
+            slurmer4: build a SLURM batch script from <cmdfile>.
+
+              • default   : serial (-j1) with GNU Parallel
+              • --parallel: concurrent execution with GNU Parallel
+              • --array   : SLURM array (one line per task)
+
+            Partition selection:
+              -p auto   : (default) choose with `qjump` (CPU) or `qjump --device gpu`
+              -p NAME   : use NAME verbatim
+            """
+        ),
+    )
+    p.add_argument("cmdfile", help="Text file: one shell command per line")
+    p.add_argument(
+        "-p",
+        "--partition",
+        dest="p",
+        default="auto",
+        help="Partition name or 'auto' to query via qjump",
+    )
+    p.add_argument("-A")
+    p.add_argument("-N", type=int, default=1)
+    p.add_argument("-n", type=int, default=1)
+    p.add_argument("-c", type=int)
+    p.add_argument("-g", type=int, help="GPUs per node (defines GPU job)")
+    p.add_argument("-t", type=int, required=True, help="Walltime (hours)")
+    p.add_argument("-J", required=True, help="SLURM job-name")
+    p.add_argument("-l", default="./logs", help="Base logs directory")
+    p.add_argument("-e")
+    p.add_argument("-o")
+    p.add_argument("--conda", help="Conda environment to activate")
+    p.add_argument(
+        "--parallel",
+        action="store_true",
+        help="Run commands concurrently with GNU Parallel",
+    )
+    p.add_argument(
+        "--array",
+        action="store_true",
+        help="Submit each command as a SLURM array task",
+    )
+    p.add_argument(
+        "--no-mps",
+        action="store_true",
+        help="Disable CUDA MPS (only matters for GPU + --parallel)",
+    )
+    return p.parse_args()
+
+
+# ───────────────────────── main ────────────────────────────
+def main() -> None:
+    a = parse()
+
+    # --------------- choose partition early ----------------
+    cpu_job = a.g is None
+    gpu_job = not cpu_job
+
+    if a.p.lower() == "auto":
+        # locate qjump (PATH preferred, else alongside this script)
+        qjump_exe = shutil.which("qjump") or os.path.join(
+            os.path.dirname(os.path.realpath(__file__)), "qjump"
+        )
+        if not os.path.exists(qjump_exe):
+            sys.exit(
+                "auto-partition requested but `qjump` not found in PATH or next to slurmer4"
+            )
+        try:
+            if gpu_job:
+                a.p = sh(f"{qjump_exe} --device gpu")
+            else:
+                a.p = sh(qjump_exe)  # default device=cpu
+        except Exception as e:
+            sys.exit(f"qjump failed: {e}")
+
+    # ---------------- argument sanity checks ---------------
+    if a.parallel and a.array:
+        sys.exit("Choose either --parallel or --array, not both.")
+
+    if not os.path.isfile(a.cmdfile):
+        sys.exit(f"File not found: {a.cmdfile}")
+    with open(a.cmdfile) as fh:
+        lines = [ln.rstrip() for ln in fh if ln.strip()]
+    if not lines:
+        sys.exit("Command file is empty")
+
+    if cpu_job and a.c is None:
+        sys.exit("CPU job: supply -c <cores>")
+
+    # Prevent accidental GPU partition on CPU job
+    if cpu_job and a.p == "ampere":
+        a.p = "icelake-himem"
+
+    # --------------- logs / account defaults ---------------
+    logs_dir = os.path.join(a.l, a.J)
+    os.makedirs(logs_dir, exist_ok=True)
+
+    if a.A is None:
+        pref = "" if sh("mybalance | grep POLONIUS | wc -l") == "0" else "POLONIUS-"
+        a.A = f"{pref}TEICHMANN-SL3-{'GPU' if gpu_job else 'CPU'}"
+
+    if a.e is None and a.o is None:
+        a.e = os.path.join(logs_dir, "%x.e%A")
+        a.o = os.path.join(logs_dir, "%x.o%A")
+
+    # --------------- mode flags & helpers ------------------
+    array_mode = a.array
+    parallel_mode = a.parallel
+    serial_mode = not array_mode and not parallel_mode
+    use_mps = gpu_job and parallel_mode and not a.no_mps
+    result_pattern = f"{logs_dir}/{{#}}/{{#}}"
+
+    # --------------- build SBATCH script -------------------
+    email_env = os.getenv("MY_CAM_EMAIL")  # ← e-mail trigger
+
+    sb = [
+        "#!/bin/bash",
+        f"#SBATCH -p {a.p}",
+        f"#SBATCH -A {a.A}",
+        f"#SBATCH -N {a.N}",
+        f"#SBATCH -n {a.n}",
+        f"#SBATCH --gres=gpu:{a.g}" if gpu_job else f"#SBATCH -c {a.c}",
+        f"#SBATCH -t {a.t}:00:00",
+        f"#SBATCH -J {a.J}",
+        f"#SBATCH -e {a.e}",
+        f"#SBATCH -o {a.o}",
+    ]
+
+    if email_env:
+        sb += [
+            "#SBATCH --mail-type=ALL",
+            f"#SBATCH --mail-user={email_env}",
+        ]
+
+    sb.append("")  # blank line after SBATCH directives
+
+    if array_mode:
+        sb += [f"#SBATCH --array=1-{len(lines)}", ""]
+
+    if a.conda:
+        sb += [
+            'eval "$(conda shell.bash hook)"',
+            f"conda activate {a.conda}",
+            "",
+        ]
+
+    if not array_mode:
+        sb.append("module load parallel/20240922")
+
+    if use_mps:
+        sb += [
+            "# ---- CUDA MPS for multi-process GPU sharing ------------",
+            'MPS_BASE="${TMPDIR:-/tmp}/mps_${SLURM_JOB_ID}"',
+            'mkdir -p "${MPS_BASE}"',
+            'export CUDA_MPS_PIPE_DIRECTORY="${MPS_BASE}"',
+            'export CUDA_MPS_LOG_DIRECTORY="${MPS_BASE}"',
+            'nvidia-cuda-mps-control -d',
+            "",
+        ]
+
+    if array_mode:
+        sb += [
+            f"mkdir -p {logs_dir}",
+            f'CMD=$(sed -n "${{SLURM_ARRAY_TASK_ID}}p" {a.cmdfile})',
+            'echo "▶ $CMD"',
+            'eval "$CMD"',
+        ]
+    elif serial_mode:
+        sb += [
+            f"mkdir -p {logs_dir}",
+            f"parallel -j1 --result {result_pattern} < {a.cmdfile}",
+        ]
+    else:  # parallel_mode
+        sb += [
+            f"mkdir -p {logs_dir}",
+            f"parallel --result {result_pattern} < {a.cmdfile}",
+        ]
+
+    if use_mps:
+        sb += ["", "echo quit | nvidia-cuda-mps-control"]
+
+    sb.append("")  # trailing newline
+    script_txt = "\n".join(sb)
+
+    # --------------- emit script ---------------------------
+    sys.stdout.write(script_txt)
+    shfile = f"{a.J}.sh"
+    with open(shfile, "w") as fh:
+        fh.write(script_txt)
+
+    sys.stderr.write(
+        f"\nWrote batch script: {shfile}\n"
+        f"Logs in: {logs_dir}\n"
+        f"Submit with: sbatch {shfile}\n"
+    )
+
+
+# ───────────────────────── entry point ─────────────────────
+if __name__ == "__main__":
+    main()

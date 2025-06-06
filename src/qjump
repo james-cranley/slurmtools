@@ -1,0 +1,116 @@
+#!/usr/bin/env bash
+#
+# qjump2 – Pick the Slurm partition whose *highest* “Priority”-blocked job
+#          has the smallest priority number.
+#
+# Usage
+#   qjump2                       # best CPU partition          (quiet)
+#   qjump2 -d gpu                # best GPU partition          (quiet)
+#   qjump2 -d cpu                # best CPU partition          (quiet, explicit)
+#   qjump2 -t                    # table for all partitions    (table)
+#
+# Options
+#   -d, --device {cpu|gpu}   choose device class (default cpu)
+#   -t, --table              show a summary table (mutually exclusive with -d)
+#   -h, --help               print this help and exit
+#
+# Exit status
+#   0 success
+#   1 bad CLI or Slurm failure
+#
+set -euo pipefail
+
+########################################
+# 1.   Partition lists – EDIT HERE
+########################################
+cpu_partitions=(cclake cclake-himem icelake icelake-himem sapphire)
+gpu_partitions=(ampere)   # add more GPU partitions here
+all_partitions=("${cpu_partitions[@]}" "${gpu_partitions[@]}")
+
+########################################
+# 2.   CLI parsing
+########################################
+device="cpu"
+table=0
+
+usage() { grep -E '^#( |$)' "$0" | sed 's/^#\s\?//'; exit "$1"; }
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -d|--device)
+            shift || { echo "qjump2: --device requires an argument" >&2; usage 1; }
+            device=$1 ;;
+        --device=*)
+            device="${1#*=}" ;;
+        -t|--table) table=1 ;;
+        -h|--help)  usage 0 ;;
+        *) echo "qjump2: unknown option: $1" >&2; usage 1 ;;
+    esac
+    shift
+done
+
+# Validate flags
+if (( table )) && [[ $device != "cpu" ]]; then
+    echo "qjump2: -t/--table cannot be combined with -d/--device" >&2
+    usage 1
+fi
+case $device in cpu|gpu) ;; *) echo "qjump2: --device must be 'cpu' or 'gpu'" >&2; usage 1 ;; esac
+
+########################################
+# 3.   Decide query & target sets
+########################################
+join_by_comma() { local IFS=,; echo "$*"; }
+
+if (( table )); then
+    query_parts=("${all_partitions[@]}")
+    target_parts=()   # irrelevant; we won’t choose
+else
+    if [[ $device == "gpu" ]]; then
+        query_parts=("${gpu_partitions[@]}")
+        target_parts=("${gpu_partitions[@]}")
+    else
+        query_parts=("${cpu_partitions[@]}")
+        target_parts=("${cpu_partitions[@]}")
+    fi
+fi
+part_list=$(join_by_comma "${query_parts[@]}")
+
+########################################
+# 4.   One Slurm query → tmpfile
+########################################
+fmt="%Q %P %r"   # priority  partition  reason
+tmpfile=$(mktemp /tmp/qjump2.XXXXXX)
+
+squeue -h -p "$part_list" --states=PENDING -o "$fmt" |
+awk '
+    $3 == "Priority" {
+        p=$2; pr=$1+0
+        cnt[p]++
+        if (pr>max[p]) max[p]=pr
+    }
+    END { for (p in cnt) print p, cnt[p], max[p] }' > "$tmpfile"
+
+########################################
+# 5.   Output
+########################################
+if (( table )); then
+    printf "%-18s %-17s %-15s\n" "Partition" "Count_Priority_Jobs" "Highest_Priority"
+    sort -k3,3n "$tmpfile" |
+    awk '{ printf "%-18s %-17s %-15s\n", $1, $2, $3 }'
+else
+    best_part=""
+    best_val=""
+    while read -r part cnt maxp; do
+        for t in "${target_parts[@]}"; do
+            if [[ $part == "$t" ]]; then
+                if [[ -z $best_part || $maxp -lt $best_val ]]; then
+                    best_part=$part
+                    best_val=$maxp
+                fi
+            fi
+        done
+    done < "$tmpfile"
+    printf '%s\n' "${best_part:-<none>}"
+fi
+
+rm -f "$tmpfile"

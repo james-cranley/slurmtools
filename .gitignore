@@ -1,0 +1,60 @@
+# -----------------------
+# OS-specific files
+# -----------------------
+.DS_Store
+Thumbs.db
+
+# -----------------------
+# Editor/IDE files
+# -----------------------
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+
+# -----------------------
+# Log files & temporary files
+# -----------------------
+*.log
+tmp/
+temp/
+logs/
+
+# -----------------------
+# Build and distribution directories
+# -----------------------
+build/
+dist/
+out/
+
+# -----------------------
+# Dependency directories
+# -----------------------
+node_modules/
+bower_components/
+
+# -----------------------
+# Python-specific files
+# -----------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+
+# -----------------------
+# Jupyter Notebook
+# -----------------------
+.ipynb_checkpoints/
+
+# -----------------------
+# Other common patterns
+# -----------------------
+*.bak
+*.tmp
+
+# -----------------------
+# Custom: Add additional rules as needed
+# -----------------------
