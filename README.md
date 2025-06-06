@@ -23,7 +23,7 @@ export MY_CAM_EMAIL=cr123@cam.ac.uk   # Replace with your CRSid email,
 
 Again consider adding this line to `~/.bashrc` for persistence.
 
-## qjump
+## `qjump`
 <details>
 <summary>click here</summary>
 
@@ -44,7 +44,7 @@ Credit: [Theo Nelson](mailto:tmn2126@columbia.edu) for the original idea.
 
 </details>
 
-## slurmer
+## `slurmer`
 <details>
 <summary>click here</summary>
 
@@ -216,7 +216,7 @@ bash test.sh
 Then inspect the logs / errors. To reset run `bash reset.sh`.
 </details>
 
-## bashaslurm
+## `bashaslurm`
 <details>
 <summary>click here</summary>
 
