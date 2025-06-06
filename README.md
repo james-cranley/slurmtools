@@ -107,6 +107,18 @@ slurmer commands.txt -J my_job -t 1 -c 2 | sbatch
 * Python 3
 * `GNU Parallel` (loaded via module inside the batch script)
 * `qjump` script (on PATH or in the same directory as `slurmer`)
+* 
+
+**Testing:**
+
+You can test whether it works on your system by running:
+
+```bash
+cd ~/slurmtools/test # go to test area
+bash test.sg
+```
+
+Then inspect the logs / errors. To reset run `bash reset.sh`.
 
 ## bashaslurm
 
