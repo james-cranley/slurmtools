@@ -10,7 +10,7 @@ Make the tools available on your `$PATH`:
 cd # move to your HOME directory
 git clone git@github.com:james-cranley/slurmtools.git
 chmod +x "$HOME/slurmtools/src"/* # makes the scripts executable (assumes you cloned the repo into HOME)
-export PATH="$HOME/slurmtools/src:$PATH" # Add to ~/.bashrc or ~/.bash_profile for persistence
+export PATH="$HOME/slurmtools/src:$PATH" # Add to ~/.bashrc for persistence
 ```
 
 ### Email notifications
