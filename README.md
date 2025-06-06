@@ -52,8 +52,8 @@ Generates SLURM batch scripts from a file of shell commands—designed for both 
 * **Execution modes**:
 
   * **Serial**: runs commands one after another (`parallel -j1`).
-  * **Parallel**: runs commands concurrently with GNU Parallel (`--parallel`).
-  * **Array**: creates a SLURM array job, one command per task (`--array`).
+  * **Parallel**: runs commands concurrently with GNU Parallel (`--parallel`). Jobs share the requested resource.
+  * **Array**: creates a SLURM array job, one command per task (`--array`). Each job gets the requested resource.
 * **Logging**:
 
   * Each job’s logs are placed in a `logs/<job-name>/` directory by default.
@@ -92,6 +92,14 @@ slurmer mycommands.txt -J testjob -t 2 -c 4 --conda myenv    # run in conda envi
 * `--conda <env>`: activates a named conda environment before running commands.
 
 The script outputs a batch file named `<job-name>.sh` and prints log/submit instructions.
+
+**One-liner:**
+
+Running `slurmer` generates a slurm script, enabling inspection. This can then be dispatched with `sbatch slurmeroutputscript.sh`. Alternatively, you can pipe the output directly to `sbatch`, like so:
+
+```bash
+slurmer commands.txt -J my_job -t 1 -c 2 | sbatch
+```
 
 **Dependencies:**
 
