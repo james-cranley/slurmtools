@@ -58,6 +58,8 @@ Generates SLURM submission scripts from a plain text file of commands. By defaul
 * **Logging**:
 
   * Each job’s logs are placed in a `logs/<job-name>/` directory by default.
+  * Each in non-array mode, each individual command (line from commands text file) has its own stderr and stdout.
+  * For future reference/debugging, the commands file and script file are kept in the logs diretory.
 * **Email notification**:
 
   * Only included if `MY_CAM_EMAIL` is set.
