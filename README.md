@@ -23,7 +23,7 @@ export MY_CAM_EMAIL=cr123@cam.ac.uk   # Replace with your CRSid email,
 
 Again consider adding this line to `~/.bashrc` for persistence.
 
-## qjump
+## <details><summary>qjump</summary></details>
 
 Identifies the Slurm partition with the **lowest** "Highest Priority" value among pending jobs blocked by the Priority reason, as a heuristic for the likely shortest queue.
 Partitions are separated into CPU and GPU classes; edit the lists in the `qjump` script as needed.
@@ -39,7 +39,7 @@ qjump --table        # print table of all queues (with pending job stats)
 Output is a single partition name (unless `--table` is used).
 
 Credit: [Theo Nelson](mailto:tmn2126@columbia.edu) for the original idea.
-
+</details>
 ## slurmer
 
 Generates SLURM submission scripts from a plain text file of commands. By default commands will be executed in series, however there is a seamless parallelisation (`--array` or `--parallel`) if each line is an independent job. It is particularly helpful when running multiple commands with varying parameterisations (i.e. bioinformatics...) because it reduces the slurm submission headache to creating a text file with one command per row. It also handles one-line jobs perfectly fine, making it flexible for all you slurm submissions.
