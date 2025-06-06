@@ -23,8 +23,7 @@ export MY_CAM_EMAIL=cr123@cam.ac.uk   # Replace with your CRSid email,
 
 Again consider adding this line to `~/.bashrc` for persistence.
 
-<details>
- ## <summary>qjump</summary>
+## <details><summary>qjump</summary>
 
 Identifies the Slurm partition with the **lowest** "Highest Priority" value among pending jobs blocked by the Priority reason, as a heuristic for the likely shortest queue.
 Partitions are separated into CPU and GPU classes; edit the lists in the `qjump` script as needed.
