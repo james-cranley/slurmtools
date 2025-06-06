@@ -93,8 +93,8 @@ slurmer commands.txt -J testjob -t 2 -c 4 --conda myenv    # run in conda enviro
 
 Example `slurmer`-generated script:
 ```bash
-slurmer -g 1 -t 1 -J slurm_parallel_gpu --conda scanpy --parallel test_cmds.txt | sbatch
->>> OUTPUT
+slurmer -g 1 -t 1 -J slurm_parallel_gpu --conda scanpy --parallel test_cmds.txt
+>>> OUTPUT: slurm_parallel_gpu.sh
 
 #!/bin/bash
 #SBATCH -p ampere
