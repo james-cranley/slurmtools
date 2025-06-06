@@ -18,7 +18,7 @@ export PATH="$HOME/slurmtools/src:$PATH" # Add to ~/.bashrc for persistence
 If you want SLURM jobs submitted by `slurmer` to send email notifications, set the environment variable `MY_CAM_EMAIL`:
 
 ```bash
-export MY_CAM_EMAIL=cr123@cam.ac.uk   # Replace with your CRSid email
+export MY_CAM_EMAIL=cr123@cam.ac.uk   # Replace with your CRSid email, again consider adding to ~/.bashrc for persistence
 ```
 
 Add this line to your shell profile for persistent configuration.
