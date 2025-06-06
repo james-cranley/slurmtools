@@ -107,7 +107,6 @@ slurmer commands.txt -J my_job -t 1 -c 2 | sbatch
 * Python 3
 * `GNU Parallel` (loaded via module inside the batch script)
 * `qjump` script (on PATH or in the same directory as `slurmer`)
-* 
 
 **Testing:**
 
@@ -115,7 +114,7 @@ You can test whether it works on your system by running:
 
 ```bash
 cd ~/slurmtools/test # go to test area
-bash test.sg
+bash test.sh
 ```
 
 Then inspect the logs / errors. To reset run `bash reset.sh`.
@@ -132,7 +131,7 @@ The result is printed to standard output.
 
 ---
 
-James Cranley
+[James Cranley](jc2226@cam.ac.uk)
 June 2025
 
 ---
