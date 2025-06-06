@@ -42,7 +42,7 @@ Credit: [Theo Nelson](mailto:tmn2126@columbia.edu) for the original idea.
 
 ## slurmer
 
-Generates SLURM batch scripts from a plain text file of commands. By default commands will be executed in series, however there is a seamless parallelisation (`--array`/`--parallel`) if each line is an independent job.
+Generates SLURM batch scripts from a plain text file of commands. By default commands will be executed in series, however there is a seamless parallelisation (`--array`/`--parallel`) if each line is an independent job. It is particualrly helpful when running multiple commands with varying parameterisations (i.e. bioinformatics...) because it reduces the slurm submission task to creating text file with one command per run.
 
 **Key features:**
 
