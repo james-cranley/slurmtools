@@ -234,10 +234,9 @@ The result is printed to standard output.
 <details>
 <summary>click here</summary>
 
-Launches a SLURM batch script **and** starts a detached watcher that will
-automatically retry the job if it times‑out or runs out of memory.  
-It is a thin wrapper around `sbatch`, `screen`, and the companion `tenacity`
-script. NB like normal `sbatch` jobs should be dispatched when on a login node (`sbatcher` checks using string search 'login' as a heuristic).
+Launches a SLURM batch script **and** starts a detached watcher that will automatically retry the job if it times‑out or runs out of memory.  
+It is a thin wrapper around `sbatch`, `screen`, and the companion `tenacity` script.
+As is also the case for standard `sbatch` dispatching, jobs should be dispatched when on a *login* node (`sbatcher` checks using string search 'login' as a heuristic).
 
 **Key features**
 
