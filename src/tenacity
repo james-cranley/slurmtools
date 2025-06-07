@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+"""
+tenacity – watch a SLURM job and retry on resource failures (timeout / OOM)
+"""
+
+import argparse
+import os
+import re
+import subprocess
+import sys
+import time
+from typing import List  # <-- use typing-compatible generics
+
+# ───────── helper functions ───────────────────────────────────────
+def sacct_state(jobid: str, poll: int):
+    """Poll sacct until job is no longer PENDING/RUNNING; return (state, exit, reason)."""
+    while True:
+        time.sleep(poll)
+        out = subprocess.check_output(
+            ['sacct', '-j', jobid, '--format=State,ExitCode,Reason', '-P'],
+            text=True, stderr=subprocess.DEVNULL)
+        for ln in out.strip().split('\n')[1:]:
+            if ln:
+                st, ex, rs = ln.split('|')
+                if st not in ('PENDING', 'RUNNING'):
+                    return st, ex, (rs or '')
+
+def sbatch(script: str) -> str:
+    """Submit script and return SLURM job-ID."""
+    return subprocess.check_output(['sbatch', script], text=True).split()[-1]
+
+def parse_sbatch(path: str):
+    """Return dict with cores/hours/mins/gpu/logdir from SBATCH header."""
+    p = {'gpu': False, 'cores': None, 'hours': 0, 'mins': 0, 'logdir': './logs'}
+    with open(path) as fh:
+        for ln in fh:
+            if '--gres=gpu' in ln: p['gpu'] = True
+            if ln.startswith('#SBATCH -c'): p['cores'] = int(ln.split()[2])
+            if ln.startswith('#SBATCH -n'): p['cores'] = int(ln.split()[2])
+            if ln.startswith('#SBATCH -t'):
+                h, *mm = ln.split()[2].split(':')
+                p['hours'], p['mins'] = int(h), int(mm[0] if mm else 0)
+            if ln.startswith('#SBATCH -o'):
+                raw = ln.split()[2].strip("'\"")
+                m = re.match(r'(.*)/%x\..*', raw)
+                dirpart = m.group(1) if m else os.path.dirname(raw)
+                if not os.path.isabs(dirpart):
+                    dirpart = os.path.normpath(os.path.join(os.path.dirname(path), dirpart))
+                p['logdir'] = dirpart
+    return p
+
+def patched_header(src_lines: List[str], cores: int, h: int, m: int,
+                   workdir: str) -> List[str]:
+    """Return new header lines with -c, -t, and -D patched."""
+    out: List[str] = []
+    inserted_D = False
+    for ln in src_lines:
+        if ln.startswith('#SBATCH -c'):
+            out.append(f'#SBATCH -c {cores}\n')
+        elif ln.startswith('#SBATCH -n'):
+            out.append(f'#SBATCH -n {cores}\n')
+        elif ln.startswith('#SBATCH -t'):
+            out.append(f'#SBATCH -t {h:02d}:{m:02d}:00\n')
+        elif ln.startswith('#SBATCH -D'):
+            inserted_D = True
+            out.append(f'#SBATCH -D {workdir}\n')
+        else:
+            out.append(ln)
+        if not inserted_D and ln.strip() == '' and out[-1].startswith('#SBATCH'):
+            out.append(f'#SBATCH -D {workdir}\n')
+            inserted_D = True
+    if not inserted_D:
+        out.append(f'#SBATCH -D {workdir}\n')
+    return out
+
+def make_retry(src: str, cores: int, h: int, m: int,
+               newname: str, workdir: str, outdir: str) -> str:
+    dst = os.path.join(outdir, newname)
+    with open(src) as r:
+        lines = r.readlines()
+    header = patched_header(lines, cores, h, m, workdir)
+    with open(dst, 'w') as w:
+        w.writelines(header + lines[len(header):])
+    return dst
+
+# ───────── CLI ────────────────────────────────────────────────────
+def cli() -> argparse.Namespace:
+    p = argparse.ArgumentParser()
+    p.add_argument('-s', '--slurm', required=True)
+    p.add_argument('--jobid')
+    p.add_argument('--max-retries', type=int, default=3)
+    p.add_argument('--time-increment', type=int, default=2)
+    p.add_argument('--max-hours', type=int, default=24)
+    p.add_argument('--core-increment', type=int, default=2)
+    p.add_argument('--max-cores', type=int, default=16)
+    p.add_argument('--poll', type=int, default=300)
+    return p.parse_args()
+
+# ───────── main loop ──────────────────────────────────────────────
+def main() -> None:
+    a = cli()
+    orig_script = os.path.abspath(a.slurm)
+    workdir     = os.path.dirname(orig_script)
+    prm0        = parse_sbatch(orig_script)
+    logdir      = prm0['logdir']
+    os.makedirs(logdir, exist_ok=True)
+    log = open(os.path.join(logdir, 'tenacity.log'), 'a')
+
+    cur_script, jobid, retry = orig_script, a.jobid, 0
+    while retry <= a.max_retries:
+        prm   = parse_sbatch(cur_script)
+        cores, hrs, mins, gpu = prm['cores'], prm['hours'], prm['mins'], prm['gpu']
+        log.write(f'[try{retry}] {cores}c {hrs}h{mins}m gpu={gpu} script={os.path.basename(cur_script)}\n'); log.flush()
+
+        if retry == 0 and jobid:
+            log.write(f'watching existing jobid {jobid}\n'); log.flush()
+        else:
+            jobid = sbatch(cur_script); log.write(f'submitted as {jobid}\n'); log.flush()
+
+        state, exit_code, reason = sacct_state(jobid, a.poll)
+        log.write(f'{jobid} → {state}  exit={exit_code}  reason={reason}\n'); log.flush()
+
+        # success
+        if state == 'COMPLETED':
+            log.write('SUCCESS\n'); break
+
+        is_timeout = (state == 'TIMEOUT') or ('TimeLimit' in reason)
+        is_oom     = ('OutOfMemory' in reason) or exit_code.startswith('137')
+
+        # OOM / CPU only
+        if is_oom and not gpu:
+            if cores + a.core_increment > a.max_cores:
+                log.write('core cap hit – stop\n'); break
+            cores += a.core_increment; retry += 1
+            cur_script = make_retry(cur_script, cores, hrs, mins,
+                                    f'slurm___OOM{retry}.sh', workdir, logdir)
+            continue
+
+        # Timeout
+        if is_timeout:
+            tot = hrs * 60 + mins + a.time_increment * 60
+            if tot > a.max_hours * 60:
+                log.write('time cap hit – stop\n'); break
+            hrs, mins = divmod(tot, 60); retry += 1
+            cur_script = make_retry(cur_script, cores, hrs, mins,
+                                    f'slurm___TO{retry}.sh', workdir, logdir)
+            continue
+
+        log.write('non-retryable failure – giving up\n'); break
+    log.close()
+
+if __name__ == '__main__':
+    main()
