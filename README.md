@@ -257,6 +257,12 @@ sbatcher myjob.sh                          # normal
 sbatcher -v myjob.sh --max-retries 3       # verbose, pass args to tenacity
 ```
 
+**One-liner with `slurmer`**
+
+```bash
+slurmer commands.txt -J my_job -t 1 -c 2 | sbatcher # the job is now dispatched and will retry if OOM/TIMEOUT
+```
+
 *Everything after the batch‑script name is forwarded to `tenacity` unchanged.*
 </details>
 
