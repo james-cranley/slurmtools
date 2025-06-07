@@ -90,6 +90,10 @@ python myGPUscript.py --input A --anotherflag B
 python myGPUscript.py --input B --anotherflag D
 ```
 
+> **Top Tip:**  
+> Check for outfile existence at the start of your script (optionally allowing a force-overwrite).  
+> This prevents wasted computation on retries (e.g. after a `TIMEOUT`).
+
 Example `slurmer` calls:
 ```bash
 slurmer commands.txt -J testjob -t 2 -c 4                  # serial (default)
