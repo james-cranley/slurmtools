@@ -4,7 +4,14 @@ sbatcher.py  –  submit a SLURM script and launch tenacity in a screen session
 usage: sbatcher.py [-v|--verbose] mysbatch.sh [extra tenacity args]
 """
 
-import argparse, os, re, shlex, subprocess, sys, textwrap
+import argparse, os, re, shlex, subprocess, sys, textwrap, socket
+
+def check_login_node():
+    hn = socket.gethostname().lower()
+    if 'login' not in hn:
+        sys.exit(f"Error: sbatcher must be run on a login node (found: {hn}).\n"
+                 "This check avoids accidental job submission from a compute node.\n"
+                 "If you believe this is an error, edit sbatcher.py to adjust the check.")
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -19,17 +26,13 @@ def extract_logdir(sbatch_file: str) -> str:
     with open(sbatch_file) as fh:
         for ln in fh:
             if re.match(r'\s*#SBATCH\s+-o', ln):
-                # get last token, strip quotes
                 path = ln.split()[-1].strip('\'"')
                 path = os.path.expandvars(path)
-                # dirname before any %-escape (e.g. %A, %x)
                 path = path.split('%')[0]
                 logdir = os.path.dirname(path) or '.'
-                # make absolute relative to script location
                 if not os.path.isabs(logdir):
                     logdir = os.path.normpath(os.path.join(os.path.dirname(sbatch_file), logdir))
                 return logdir
-    # fallback
     return os.path.normpath(os.path.join(os.path.dirname(sbatch_file), 'logs'))
 
 def run(cmd: str, verbose: bool) -> str:
@@ -38,6 +41,7 @@ def run(cmd: str, verbose: bool) -> str:
     return subprocess.check_output(cmd, shell=True, text=True)
 
 def main() -> None:
+    check_login_node()
     a = parse_args()
     sbatch_script = os.path.abspath(a.slurm)
     if not os.path.isfile(sbatch_script):
@@ -45,17 +49,14 @@ def main() -> None:
 
     logdir = extract_logdir(sbatch_script)
     os.makedirs(logdir, exist_ok=True)
-    # keep a copy of the exact script used
     subprocess.run(['cp', sbatch_script, logdir], check=True)
     if a.verbose:
         print(f'[sbatcher] logdir = {logdir}')
 
-    # submit the job **from the original script path** so its relative paths work
     submit_out = run(f'sbatch {shlex.quote(sbatch_script)}', a.verbose)
     jobid = submit_out.strip().split()[-1]
     print(f'Submitted {sbatch_script} as SLURM job {jobid}')
 
-    # launch tenacity in a detached screen session
     screen_name = f'tenacity.{jobid}'
     tenacity_cmd = ['tenacity', '-s', sbatch_script, '--jobid', jobid, *a.extra]
     tenacity_cmd = ' '.join(map(shlex.quote, tenacity_cmd))
@@ -68,7 +69,6 @@ def main() -> None:
         screen_cmd = f'screen -dmS {screen_name} {tenacity_cmd}'
     run(screen_cmd, a.verbose)
 
-    # user help
     print(f'Started tenacity watcher in screen session: {screen_name}')
     print('---------------------------------------------')
     print(f'attach :  screen -r {screen_name}')
