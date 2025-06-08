@@ -3,7 +3,6 @@
 sbatcher.py  –  submit a SLURM script and launch tenacity in a screen session
 usage: sbatcher.py [-v|--verbose] mysbatch.sh [extra tenacity args]
 """
-
 import argparse, os, re, shlex, subprocess, sys, textwrap, socket
 
 def check_login_node():
@@ -22,7 +21,6 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 def extract_logdir(sbatch_file: str) -> str:
-    """Return directory portion of the '#SBATCH -o <path>' line (default ./logs)."""
     with open(sbatch_file) as fh:
         for ln in fh:
             if re.match(r'\s*#SBATCH\s+-o', ln):

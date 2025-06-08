@@ -1,2 +1,2 @@
-rm -f slurm_*
+rm -f slurmer_*
 rm -rf logs/
