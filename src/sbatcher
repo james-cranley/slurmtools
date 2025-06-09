@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 sbatcher.py  –  submit a SLURM script and launch tenacity in a screen session
-usage: sbatcher.py [-v|--verbose] mysbatch.sh [extra tenacity args]
+usage: sbatcher.py mysbatch.sh [extra tenacity args]
 """
 import argparse, os, re, shlex, subprocess, sys, textwrap, socket
 
@@ -15,7 +15,6 @@ def check_login_node():
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
         description=textwrap.dedent(__doc__))
-    p.add_argument('-v', '--verbose', action='store_true', help='verbose / debug mode')
     p.add_argument('slurm', help='SLURM batch script')
     p.add_argument('extra', nargs=argparse.REMAINDER, help='extra args passed to tenacity')
     return p.parse_args()
@@ -33,9 +32,8 @@ def extract_logdir(sbatch_file: str) -> str:
                 return logdir
     return os.path.normpath(os.path.join(os.path.dirname(sbatch_file), 'logs'))
 
-def run(cmd: str, verbose: bool) -> str:
-    if verbose:
-        print(f'[sbatcher] $ {cmd}')
+def run(cmd: str) -> str:
+    print(f'[sbatcher] $ {cmd}')
     return subprocess.check_output(cmd, shell=True, text=True)
 
 def main() -> None:
@@ -48,31 +46,26 @@ def main() -> None:
     logdir = extract_logdir(sbatch_script)
     os.makedirs(logdir, exist_ok=True)
     subprocess.run(['cp', sbatch_script, logdir], check=True)
-    if a.verbose:
-        print(f'[sbatcher] logdir = {logdir}')
+    print(f'[sbatcher] logdir = {logdir}')
 
-    submit_out = run(f'sbatch {shlex.quote(sbatch_script)}', a.verbose)
+    submit_out = run(f'sbatch {shlex.quote(sbatch_script)}')
     jobid = submit_out.strip().split()[-1]
     print(f'Submitted {sbatch_script} as SLURM job {jobid}')
 
     screen_name = f'tenacity.{jobid}'
     tenacity_cmd = ['tenacity', '-s', sbatch_script, '--jobid', jobid, *a.extra]
     tenacity_cmd = ' '.join(map(shlex.quote, tenacity_cmd))
-    if a.verbose:
-        screen_cmd = (
-            f'screen -dmS {screen_name} bash -c '
-            f'"{tenacity_cmd} &> {os.path.join(logdir, "tenacity_screen.log")}"'
-        )
-    else:
-        screen_cmd = f'screen -dmS {screen_name} {tenacity_cmd}'
-    run(screen_cmd, a.verbose)
+    screen_cmd = (
+        f'screen -dmS {screen_name} bash -c '
+        f'"{tenacity_cmd} &> {os.path.join(logdir, "tenacity_screen.log")}"'
+    )
+    run(screen_cmd)
 
     print(f'Started tenacity watcher in screen session: {screen_name}')
     print('---------------------------------------------')
     print(f'attach :  screen -r {screen_name}')
     print(f'kill   :  screen -S {screen_name} -X quit')
-    if a.verbose:
-        print(f'logs   :  less {os.path.join(logdir, "tenacity_screen.log")}')
+    print(f'logs   :  less {os.path.join(logdir, "tenacity_screen.log")}')
     print('---------------------------------------------')
 
 if __name__ == '__main__':
