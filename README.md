@@ -253,7 +253,7 @@ As is also the case for standard `sbatch` dispatching, jobs should be dispatched
 
 ```bash
 sbatcher myjob.sh                          # normal
-sbatcher -v myjob.sh --max-retries 3       # verbose, pass args to tenacity
+sbatcher myjob.sh --max-retries 3          # verbose, pass args to tenacity
 ```
 
 **Two-liner with `slurmer`**
