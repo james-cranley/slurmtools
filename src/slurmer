@@ -257,7 +257,7 @@ def main() -> None:
         f"\nWrote batch script : {shfile}\n"
         f"Script directory   : {script_dir}\n"
         f"Logs directory     : {logs_dir}\n"
-        f"Submit with        : sbatch {shfile}\n"
+        f"Submit with        : sbatcher {shfile}\n"
         f"Config snapshot    : {cfg_path}\n"
     )
 
