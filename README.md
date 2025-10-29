@@ -246,8 +246,6 @@ As is also the case for standard `sbatch` dispatching, jobs should be dispatched
 * Submits the SLURM job and records the Job ID.
 * Spawns a detached `screen` session named `tenacity.<JOBID>` running the
   watcher.
-* Verbose mode (`-v`) prints every command and redirects the watcher’s stdout +
-  stderr to `tenacity_screen.log` in the log directory.
 
 **Basic usage**
 
