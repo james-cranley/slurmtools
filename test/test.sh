@@ -6,6 +6,6 @@ slurmer -g 1 -t 1 -J slurmer_test_parallel_gpu --conda scanpy --parallel command
 slurmer -g 1 -t 1 -J slurmer_test_array_gpu --conda scanpy --array commands.txt | sbatch # array gpu
 
 # test sbatcher with pre-made scripts with 1 minute job times
-sbatcher -v sbatcher_test_serial.sh
-sbatcher -v sbatcher_test_parallel.sh
-sbatcher -v sbatcher_test_array.sh
+sbatcher sbatcher_test_serial.sh
+sbatcher sbatcher_test_parallel.sh
+sbatcher sbatcher_test_array.sh
