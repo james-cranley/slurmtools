@@ -251,8 +251,11 @@ def main() -> None:
     with open(cfg_path, "w") as jf:
         json.dump(vars(a), jf, indent=2, sort_keys=True)
 
+    script_dir = os.path.dirname(os.path.abspath(shfile))
+
     sys.stderr.write(
         f"\nWrote batch script : {shfile}\n"
+        f"Script directory   : {script_dir}\n"
         f"Logs directory     : {logs_dir}\n"
         f"Submit with        : sbatch {shfile}\n"
         f"Config snapshot    : {cfg_path}\n"
