@@ -256,7 +256,7 @@ def main() -> None:
     sys.stderr.write(
         f"\nWrote batch script : {shfile}\n"
         f"Script directory   : {script_dir}\n"
-        f"Logs directory     : {logs_dir}\n"
+        f"Logs directory     : {os.path.abspath(logs_dir)}\n"
         f"Config snapshot    : {cfg_path}\n"
         f"Submit with        : cd {script_dir} && sbatcher {shfile}\n"
     )
